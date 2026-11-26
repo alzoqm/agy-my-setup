@@ -14,7 +14,9 @@ import threading
 import time
 import uuid
 
-SERVER = {"name": "ext-claude", "version": "1.0.0"}
+SERVER = {"name": "ext-claude", "version": "1.1.0"}
+DEFAULT_MODEL = os.environ.get("CLAUDE_WORKER_MODEL") or None
+DEFAULT_EFFORT = os.environ.get("CLAUDE_WORKER_EFFORT") or None
 HOME = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get("PLUGIN_DATA") or HOME
 JOBDIR = os.path.join(DATA_DIR, "claude_jobs")
@@ -321,8 +323,8 @@ def call_tool(name, a):
             a["workspacePath"],
             a["task"],
             a.get("permissionMode", "acceptEdits"),
-            a.get("model"),
-            a.get("effort"),
+            a.get("model") or DEFAULT_MODEL,
+            a.get("effort") or DEFAULT_EFFORT,
             a.get("disableMcps", True),
         )
         wait_for([j], a.get("waitMs", 600000) if a.get("wait") else 4000)
@@ -373,7 +375,13 @@ def call_tool(name, a):
     if name == "claude_info":
         exe = claude_exe()
         ver = subprocess.run([exe, "--version"], capture_output=True, text=True).stdout.strip()
-        return {"claudeExe": exe, "version": ver, "jobLogDir": JOBDIR}
+        return {
+            "claudeExe": exe,
+            "version": ver,
+            "jobLogDir": JOBDIR,
+            "defaultModel": DEFAULT_MODEL,
+            "defaultEffort": DEFAULT_EFFORT,
+        }
     raise ValueError(f"unknown tool: {name}")
 
 
