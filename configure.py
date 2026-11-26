@@ -66,6 +66,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Configure agy-my-setup for this machine.")
     parser.add_argument("-ConfigFile", "--config-file", dest="config_file", default="")
     parser.add_argument("-Editorial", "--editorial", dest="editorial", default="")
+    parser.add_argument("-ContextInspector", "--context-inspector", dest="context_inspector", default="")
     parser.add_argument("-Harnesses", "--harnesses", dest="harnesses", nargs="*", default=[])
     parser.add_argument("-Primary", "--primary", dest="primary", default="")
     parser.add_argument("-Weights", "--weights", dest="weights", default="")
@@ -84,6 +85,7 @@ def main() -> int:
 
     cfg = {
         "editorial": True,
+        "context_inspector": True,
         "harnesses": {"dsh": True, "claude": True, "codex": True},
         "primary": "dsh",
         "weights": {"dsh": 10, "claude": 2, "codex": 1},
@@ -99,6 +101,8 @@ def main() -> int:
         loaded = json.loads(setup_path.read_text(encoding="utf-8"))
         if "editorial" in loaded:
             cfg["editorial"] = bool(loaded["editorial"])
+        if "context_inspector" in loaded:
+            cfg["context_inspector"] = bool(loaded["context_inspector"])
         if isinstance(loaded.get("harnesses"), dict):
             for k in ("dsh", "claude", "codex"):
                 if k in loaded["harnesses"]:
@@ -119,6 +123,7 @@ def main() -> int:
 
     has_cli_overrides = any([
         args.editorial != "",
+        args.context_inspector != "",
         len(args.harnesses) > 0,
         args.primary != "",
         args.weights != "",
@@ -136,6 +141,7 @@ def main() -> int:
         print("Press Enter to keep the [current/default] value.\n")
 
         cfg["editorial"] = read_bool("1) Enable Global Editorial Style & editorial-media MCP?", cfg["editorial"])
+        cfg["context_inspector"] = read_bool("1b) Enable Context Inspector UI (context-inspector MCP)?", cfg["context_inspector"])
         cfg["harnesses"]["dsh"] = read_bool("2) Enable ext-dsh (DeepSeek Harness Desktop)?", cfg["harnesses"]["dsh"])
         cfg["harnesses"]["claude"] = read_bool("3) Enable ext-claude (Claude Code CLI)?", cfg["harnesses"]["claude"])
         cfg["harnesses"]["codex"] = read_bool("4) Enable ext-codex (OpenAI Codex / GPT)?", cfg["harnesses"]["codex"])
@@ -166,6 +172,8 @@ def main() -> int:
 
     if args.editorial != "":
         cfg["editorial"] = parse_bool_str(args.editorial)
+    if args.context_inspector != "":
+        cfg["context_inspector"] = parse_bool_str(args.context_inspector)
 
     if args.harnesses:
         flat = [x.strip().lower() for item in args.harnesses for x in item.split(",") if x.strip()]
@@ -218,6 +226,12 @@ def main() -> int:
         servers["editorial-media"] = {
             "command": py_cmd,
             "args": ["-X", "utf8", "${PLUGIN_ROOT}/scripts/editorial_media_server.py"],
+        }
+
+    if cfg["context_inspector"]:
+        servers["context-inspector"] = {
+            "command": py_cmd,
+            "args": ["-X", "utf8", "${PLUGIN_ROOT}/scripts/context_server.py"],
         }
 
     if cfg["harnesses"]["claude"]:
@@ -367,11 +381,20 @@ def main() -> int:
     elif skill_dir.exists():
         shutil.rmtree(skill_dir)
 
+    ctx_skill_dir = target_dir / "skills" / "context-inspector"
+    ctx_tpl = SCRIPT_DIR / "templates" / "skill-context-inspector.md"
+    if cfg["context_inspector"] and ctx_tpl.exists():
+        ctx_skill_dir.mkdir(parents=True, exist_ok=True)
+        (ctx_skill_dir / "SKILL.md").write_text(ctx_tpl.read_text(encoding="utf-8"), encoding="utf-8")
+    elif not cfg["context_inspector"] and ctx_skill_dir.exists():
+        shutil.rmtree(ctx_skill_dir)
+
     (target_dir / "setup.json").write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     print(f"\nConfigured agy-my-setup at: {target_dir}")
     print(f"  Python Command  : {py_cmd}")
     print(f"  Editorial Style : {cfg['editorial']}")
+    print(f"  Context Inspect : {cfg['context_inspector']}")
     print(f"  MCP Servers     : {', '.join(servers.keys())}")
     if enabled:
         print(f"  Primary Harness : ext-{cfg['primary']}")

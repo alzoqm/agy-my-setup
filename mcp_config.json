@@ -8,6 +8,14 @@
         "${PLUGIN_ROOT}/scripts/editorial_media_server.py"
       ]
     },
+    "context-inspector": {
+      "command": "python",
+      "args": [
+        "-X",
+        "utf8",
+        "${PLUGIN_ROOT}/scripts/context_server.py"
+      ]
+    },
     "ext-claude": {
       "command": "python",
       "args": [

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Context Inspector</title>
+  <style>
+    :root {
+      --bg: var(--color-background-primary, #0f1117);
+      --bg-card: var(--color-background-secondary, #181b23);
+      --bg-muted: var(--color-background-tertiary, #222632);
+      --text: var(--color-text-primary, #eef1f7);
+      --text-dim: var(--color-text-secondary, #9aa3b2);
+      --border: var(--color-border-primary, #2b3140);
+      --accent: var(--color-ring-primary, #60a5fa);
+      --font: var(--font-sans, system-ui, -apple-system, sans-serif);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 14px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .title { font-size: 15px; font-weight: 600; }
+    .controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    select, button {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    select { max-width: 320px; }
+    button.primary {
+      background: var(--accent);
+      color: #0b1020;
+      border-color: transparent;
+      font-weight: 600;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+    .val { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .sec-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+    .grid100 {
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      gap: 3px;
+      font-family: monospace;
+      font-size: 11px;
+      text-align: center;
+    }
+    .bar-row { margin-bottom: 7px; }
+    .bar-head { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+    .bar-track { height: 7px; background: var(--bg-muted); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; }
+    .turns-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 68px;
+      padding-top: 6px;
+    }
+    .turn-col {
+      flex: 1;
+      background: var(--accent);
+      border-radius: 3px 3px 0 0;
+      min-width: 6px;
+      opacity: 0.85;
+    }
+    .step-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+    .step-item:last-child { border-bottom: none; }
+    .mono { font-family: ui-monospace, SFMono-Regular, monospace; }
+    .muted { color: var(--text-dim); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">Context Inspector</div>
+      <div id="modelBadge" class="sub">세션 로딩 중...</div>
+    </div>
+    <div class="controls">
+      <select id="convSelect"><option value="">세션 목록 로딩...</option></select>
+      <button id="refreshBtn" class="primary">새로고침</button>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="label">컨텍스트 점유율</div>
+      <div id="pctVal" class="val">-</div>
+      <div id="usedSub" class="sub">-</div>
+    </div>
+    <div class="card">
+      <div class="label">캐시 적중 (Cache Read)</div>
+      <div id="cacheVal" class="val">-</div>
+      <div class="sub">직전 턴 기준</div>
+    </div>
+    <div class="card">
+      <div class="label">남은 여유 공간</div>
+      <div id="freeVal" class="val">-</div>
+      <div id="stepsSub" class="sub">-</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title">비율 그리드 (100셀 = 전체 컨텍스트 윈도우)</div>
+    <div id="grid100" class="grid100"></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title">카테고리별 점유 (실측 + 추정 분해)</div>
+    <div id="bars"></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title">턴별 Input Token 증가 추이</div>
+    <div id="turnsChart" class="turns-chart"></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title">용량이 큰 상위 스텝 (Top Heavy Steps)</div>
+    <div id="heavySteps" class="muted">데이터 없음</div>
+  </div>
+
+  <script>
+    let rpcId = 1;
+    const pending = new Map();
+    let currentConvId = "";
+    let cachedPayload = null;
+
+    function postRpc(method, params) {
+      const id = rpcId++;
+      window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, "*");
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          pending.delete(id);
+          reject(new Error("RPC timeout: " + method));
+        }, 4000);
+        pending.set(id, {
+          resolve: (v) => { clearTimeout(timer); resolve(v); },
+          reject: (e) => { clearTimeout(timer); reject(e); },
+        });
+      });
+    }
+
+    function applyTheme(ctx) {
+      if (!ctx || !ctx.styles || !ctx.styles.variables) return;
+      const root = document.documentElement;
+      for (const [k, v] of Object.entries(ctx.styles.variables)) {
+        root.style.setProperty(k, v);
+      }
+    }
+
+    function fmt(n) {
+      if (n >= 1000000) return (n / 1000000).toFixed(2) + "M";
+      if (n >= 1000) return (n / 1000).toFixed(1) + "k";
+      return String(n);
+    }
+
+    function selectSessionLocal(cid) {
+      if (!cachedPayload || !cachedPayload.sessions_by_id || !cachedPayload.sessions_by_id[cid]) {
+        return false;
+      }
+      const next = {
+        ...cachedPayload.sessions_by_id[cid],
+        recent_conversations: cachedPayload.recent_conversations,
+        sessions_by_id: cachedPayload.sessions_by_id,
+      };
+      renderData(next);
+      return true;
+    }
+
+    function renderData(d) {
+      if (!d) return;
+      if (d.error) {
+        document.getElementById("modelBadge").textContent = d.error;
+        return;
+      }
+      if (d.sessions_by_id) {
+        cachedPayload = d;
+      }
+      currentConvId = d.conversation_id || "";
+      document.getElementById("modelBadge").textContent =
+        `${d.conversation_title || currentConvId.slice(0, 8)} · ${d.model}`;
+
+      const sel = document.getElementById("convSelect");
+      const list = d.recent_conversations || [];
+      if (list.length) {
+        sel.innerHTML = "";
+        list.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = `${c.title} (${c.used_percentage}%)`;
+          if (c.id === currentConvId) opt.selected = true;
+          sel.appendChild(opt);
+        });
+      }
+
+      document.getElementById("pctVal").textContent = `${d.used_percentage}%`;
+      document.getElementById("usedSub").textContent = `${fmt(d.used_tokens)} / ${fmt(d.context_limit)}`;
+      const cacheRead = d.latest_turn?.cache_read_tokens || 0;
+      const turnTotal = cacheRead + (d.latest_turn?.input_tokens || 0);
+      const cachePct = turnTotal > 0 ? ((cacheRead / turnTotal) * 100).toFixed(1) : "0.0";
+      document.getElementById("cacheVal").textContent = `${cachePct}%`;
+      document.getElementById("freeVal").textContent = fmt(d.remaining_tokens);
+      document.getElementById("stepsSub").textContent = `총 ${d.step_count} 스텝`;
+
+      const b = d.breakdown || {};
+      const items = [
+        { label: "⛁ System & Tools (추정)", val: b.system_and_tools_est || 0, color: "#60a5fa", sym: "⛁" },
+        { label: "⛁ Active Rules (20k 예산)", val: b.rules_est || 0, color: "#a78bfa", sym: "⛁" },
+        { label: "◉ User Messages (추정)", val: b.user_messages_est || 0, color: "#34d399", sym: "◉" },
+        { label: "◉ Model Responses (추정)", val: b.model_responses_est || 0, color: "#fbbf24", sym: "◉" },
+        { label: "◉ Tool Outputs (추정)", val: b.tool_outputs_est || 0, color: "#f87171", sym: "◉" },
+      ];
+
+      const grid = document.getElementById("grid100");
+      grid.innerHTML = "";
+      let filled = 0;
+      items.forEach(it => {
+        const cnt = Math.round((it.val / d.context_limit) * 100);
+        for (let i = 0; i < cnt && filled < 100; i++) {
+          const sp = document.createElement("span");
+          sp.textContent = it.sym;
+          sp.style.color = it.color;
+          sp.title = `${it.label}: ${fmt(it.val)}`;
+          grid.appendChild(sp);
+          filled++;
+        }
+      });
+      while (filled < 100) {
+        const sp = document.createElement("span");
+        sp.textContent = "□";
+        sp.style.color = "var(--text-dim)";
+        sp.style.opacity = "0.4";
+        grid.appendChild(sp);
+        filled++;
+      }
+
+      const bars = document.getElementById("bars");
+      bars.innerHTML = items.map(it => {
+        const p = Math.min(100, ((it.val / d.context_limit) * 100)).toFixed(2);
+        return `
+          <div class="bar-row">
+            <div class="bar-head">
+              <span>${it.label}</span>
+              <span class="mono">${fmt(it.val)} (${p}%)</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${Math.max(1, Number(p))}%;background:${it.color}"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      const tc = document.getElementById("turnsChart");
+      const turns = d.turns || [];
+      const maxT = Math.max(1, ...turns.map(t => t.input_tokens));
+      tc.innerHTML = turns.map(t => {
+        const h = Math.max(8, Math.round((t.input_tokens / maxT) * 60));
+        return `<div class="turn-col" style="height:${h}px" title="Step ${t.step}: ${fmt(t.input_tokens)} input tokens"></div>`;
+      }).join("") || '<span class="muted">턴 데이터 없음</span>';
+
+      const hs = document.getElementById("heavySteps");
+      const hlist = d.heavy_steps || [];
+      hs.innerHTML = "";
+      if (!hlist.length) {
+        hs.textContent = "큰 스텝 없음";
+      } else {
+        hlist.forEach(s => {
+          const row = document.createElement("div");
+          row.className = "step-item";
+          const c1 = document.createElement("span");
+          c1.className = "mono";
+          c1.textContent = `#${s.step} [${s.type}]`;
+          const c2 = document.createElement("span");
+          c2.className = "muted";
+          c2.style.cssText = "flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+          c2.textContent = s.preview;
+          const c3 = document.createElement("span");
+          c3.className = "mono";
+          c3.textContent = `~${fmt(s.tokens_est)}`;
+          row.append(c1, c2, c3);
+          hs.appendChild(row);
+        });
+      }
+    }
+
+    window.addEventListener("message", (ev) => {
+      const msg = ev.data;
+      if (!msg || typeof msg !== "object") return;
+      if (msg.id && pending.has(msg.id)) {
+        const { resolve, reject } = pending.get(msg.id);
+        pending.delete(msg.id);
+        if (msg.error) reject(msg.error);
+        else resolve(msg.result);
+        return;
+      }
+      if (msg.method === "ui/notifications/tool-result" && msg.params?.structuredContent) {
+        renderData(msg.params.structuredContent);
+      } else if (msg.method === "ui/notifications/host-context-changed") {
+        applyTheme(msg.params);
+      }
+    });
+
+    document.getElementById("convSelect").addEventListener("change", (e) => {
+      const cid = e.target.value;
+      if (!selectSessionLocal(cid)) {
+        refresh(cid);
+      }
+    });
+
+    async function refresh(convId) {
+      try {
+        const res = await postRpc("tools/call", {
+          name: "refresh_context",
+          arguments: convId ? { conversation_id: convId } : {},
+        });
+        if (res && res.structuredContent) renderData(res.structuredContent);
+      } catch (e) {
+        selectSessionLocal(convId || currentConvId);
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", () => refresh(currentConvId));
+
+    (async function init() {
+      try {
+        const initRes = await postRpc("ui/initialize", {
+          appInfo: { name: "Context Inspector", version: "1.0.0" },
+          appCapabilities: {},
+          protocolVersion: "2025-06-18",
+        });
+        window.parent.postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} }, "*");
+        if (initRes?.hostContext) applyTheme(initRes.hostContext);
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

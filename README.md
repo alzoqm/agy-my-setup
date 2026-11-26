@@ -1,6 +1,6 @@
 # agy-my-setup
 
-Windows / macOS / Linux 모두에서 동일한 Antigravity 응답 스타일(에디토리얼 이미지 + 인터랙티브 UI + 장문형 답변)과 외부 하네스 서브에이전트(`ext-claude`, `ext-codex`, `ext-dsh`)를 설치하고, **PC마다 원하는 조합·가중치·모델·effort를 자유롭게 커스텀**할 수 있는 통합 플러그인입니다.
+Windows / macOS / Linux 모두에서 동일한 Antigravity 응답 스타일(에디토리얼 이미지 + 인터랙티브 UI + 장문형 답변), **Context Inspector(왼쪽 사이드바 세션별 컨텍스트/캐시 적중% 대시보드)**, 그리고 외부 하네스 서브에이전트(`ext-claude`, `ext-codex`, `ext-dsh`)를 원라인으로 설치하고, **PC마다 원하는 조합·가중치·모델·effort를 자유롭게 커스텀**할 수 있는 통합 플러그인입니다.
 
 ## 새 데스크탑 / 맥에서 설치 및 커스텀 세팅
 
@@ -22,7 +22,8 @@ agy plugin install https://github.com/alzoqm/agy-my-setup
   ```
   *(또는 `configure.sh` / `configure.ps1` 래퍼 실행 가능)*
 
-- 에디토리얼 스타일 ON/OFF
+- 에디토리얼 스타일 ON/OFF (`--editorial` / `-Editorial`)
+- Context Inspector UI ON/OFF (`--context-inspector` / `-ContextInspector`, 왼쪽 사이드바에서 세션 제목별 컨텍스트 점유율·캐시 적중%·턴별 추이·상위 스텝 확인)
 - 사용할 하네스 선택 (`dsh`, `claude`, `codex` 각각 ON/OFF)
 - 주력 하네스 및 할당 가중치 지정 (예: `claude=8,codex=2`)
 - 각 하네스별 **일반 작업 모델:effort** / **고난도 작업 모델:effort** 지정
