@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$ConfigFile = "",
     [string]$Editorial = "",             # true | false (or 1 | 0)
     [string[]]$Harnesses = @(),          # e.g. @("claude","codex") or "claude,codex"
@@ -217,13 +217,13 @@ if ($CodexAsset)   { $cfg.models.codex.asset   = $CodexAsset }
 if ($DshNormal)    { $cfg.models.dsh.normal    = $DshNormal }
 if ($DshHard)      { $cfg.models.dsh.hard      = $DshHard }
 
-$claudeNorm = Split-Pair $cfg.models.claude.normal "sonnet" "medium"
-$claudeHard = Split-Pair $cfg.models.claude.hard   "opus"   "high"
-$codexNorm  = Split-Pair $cfg.models.codex.normal  "gpt-6.2-sol" "medium"
-$codexHard  = Split-Pair $cfg.models.codex.hard    "gpt-6.2-sol" "high"
-$codexAsset = Split-Pair $cfg.models.codex.asset   "gpt-6-luna"  "medium"
-$dshNorm    = Split-Pair $cfg.models.dsh.normal    "muse-spark-1.3-contributor" "medium"
-$dshHard    = Split-Pair $cfg.models.dsh.hard      "deepseek-v4.1-flash" "high"
+$pClaudeNorm = Split-Pair $cfg.models.claude.normal "sonnet" "medium"
+$pClaudeHard = Split-Pair $cfg.models.claude.hard   "opus"   "high"
+$pCodexNorm  = Split-Pair $cfg.models.codex.normal  "gpt-6.2-sol" "medium"
+$pCodexHard  = Split-Pair $cfg.models.codex.hard    "gpt-6.2-sol" "high"
+$pCodexAsset = Split-Pair $cfg.models.codex.asset   "gpt-6-luna"  "medium"
+$pDshNorm    = Split-Pair $cfg.models.dsh.normal    "muse-spark-1.3-contributor" "medium"
+$pDshHard    = Split-Pair $cfg.models.dsh.hard      "deepseek-v4.1-flash" "high"
 
 # 4. Generate mcp_config.json
 $servers = [ordered]@{}
@@ -240,8 +240,8 @@ if ($cfg.harnesses.claude) {
         command = "python"
         args = @("-X", "utf8", "`${PLUGIN_ROOT}/scripts/claude_workers_server.py")
         env = [ordered]@{
-            CLAUDE_WORKER_MODEL  = $claudeNorm.model
-            CLAUDE_WORKER_EFFORT = $claudeNorm.effort
+            CLAUDE_WORKER_MODEL  = $pClaudeNorm.model
+            CLAUDE_WORKER_EFFORT = $pClaudeNorm.effort
         }
     }
 }
@@ -251,8 +251,8 @@ if ($cfg.harnesses.codex) {
         command = "python"
         args = @("-X", "utf8", "`${PLUGIN_ROOT}/scripts/codex_workers_server.py")
         env = [ordered]@{
-            CODEX_WORKER_MODEL  = $codexNorm.model
-            CODEX_WORKER_EFFORT = $codexNorm.effort
+            CODEX_WORKER_MODEL  = $pCodexNorm.model
+            CODEX_WORKER_EFFORT = $pCodexNorm.effort
         }
     }
 }
@@ -300,37 +300,37 @@ if ($enabled.Count -gt 0) {
         if ($h -eq "dsh") {
             $serverLines += "- ``ext-dsh``: DeepSeek Harness Desktop (``session_create``, ``session_send``, ``session_poll``, ``session_result``, ``model_list``)"
             $allocLines += "- **``ext-dsh`` [$roleTag, weight=$w]**:"
-            $allocLines += "  - Normal tasks (implementation, refactoring, tests, docs, 1st-pass review — no secrets): ``opencode-go/$($dshNorm.model)`` (effort ``$($dshNorm.effort)``)."
-            $allocLines += "  - Hard/confidential tasks (algorithms, critical verification, large outputs): ``opencode-go/$($dshHard.model)`` (effort ``$($dshHard.effort)``)."
+            $allocLines += "  - Normal tasks (implementation, refactoring, tests, docs, 1st-pass review — no secrets): ``opencode-go/$($pDshNorm.model)`` (effort ``$($pDshNorm.effort)``)."
+            $allocLines += "  - Hard/confidential tasks (algorithms, critical verification, large outputs): ``opencode-go/$($pDshHard.model)`` (effort ``$($pDshHard.effort)``)."
             $skillSections += @"
 ### ``ext-dsh`` ($roleTag)
-- Allowed models ONLY: ``opencode-go/$($dshNorm.model)`` (normal, no secrets) and ``opencode-go/$($dshHard.model)`` (hard/confidential).
-- Default tiers: normal=``$($dshNorm.model)`` (``$($dshNorm.effort)``), hard=``$($dshHard.model)`` (``$($dshHard.effort)``).
+- Allowed models ONLY: ``opencode-go/$($pDshNorm.model)`` (normal, no secrets) and ``opencode-go/$($pDshHard.model)`` (hard/confidential).
+- Default tiers: normal=``$($pDshNorm.model)`` (``$($pDshNorm.effort)``), hard=``$($pDshHard.model)`` (``$($pDshHard.effort)``).
 - Flow: ``session_create(workspacePath, provider="opencode-go", model=...)`` -> ``session_send(sessionId, prompt, wait="turn")`` -> ``session_result(sessionId)``.
 "@
         }
         elseif ($h -eq "claude") {
-            $serverLines += "- ``ext-claude``: Claude Code CLI (``claude_start``, ``claude_send``, ``claude_poll``, ``claude_result``, ``claude_info``) — default ``$($claudeNorm.model)`` (``$($claudeNorm.effort)``)"
+            $serverLines += "- ``ext-claude``: Claude Code CLI (``claude_start``, ``claude_send``, ``claude_poll``, ``claude_result``, ``claude_info``) — default ``$($pClaudeNorm.model)`` (``$($pClaudeNorm.effort)``)"
             $allocLines += "- **``ext-claude`` [$roleTag, weight=$w]**:"
-            $allocLines += "  - Normal/default tier: ``$($claudeNorm.model)`` (effort ``$($claudeNorm.effort)``) for feature implementation, refactoring, tests, docs, and 1st-pass review."
-            $allocLines += "  - Hard/architect tier: ``$($claudeHard.model)`` (effort ``$($claudeHard.effort)``) for architecture design, multi-module root-cause debugging, and precision reviews."
+            $allocLines += "  - Normal/default tier: ``$($pClaudeNorm.model)`` (effort ``$($pClaudeNorm.effort)``) for feature implementation, refactoring, tests, docs, and 1st-pass review."
+            $allocLines += "  - Hard/architect tier: ``$($pClaudeHard.model)`` (effort ``$($pClaudeHard.effort)``) for architecture design, multi-module root-cause debugging, and precision reviews."
             $skillSections += @"
 ### ``ext-claude`` ($roleTag)
 - Tools: ``claude_start``, ``claude_send``, ``claude_poll``, ``claude_result``, ``claude_cancel``, ``claude_list``, ``claude_info``.
-- Default tier (used when ``model``/``effort`` omitted): ``$($claudeNorm.model)`` (``$($claudeNorm.effort)``).
-- Hard/architect tier (pass explicitly): ``model="$($claudeHard.model)", effort="$($claudeHard.effort)"``.
+- Default tier (used when ``model``/``effort`` omitted): ``$($pClaudeNorm.model)`` (``$($pClaudeNorm.effort)``).
+- Hard/architect tier (pass explicitly): ``model="$($pClaudeHard.model)", effort="$($pClaudeHard.effort)"``.
 - Flow: ``claude_start(workspacePath, task, wait=true/false)`` -> ``claude_send(sessionId, task)``.
 "@
         }
         elseif ($h -eq "codex") {
-            $serverLines += "- ``ext-codex``: OpenAI Codex / GPT (``codex_start``, ``codex_send``, ``codex_poll``, ``codex_result``, ``codex_info``) — default ``$($codexNorm.model)`` (``$($codexNorm.effort)``)"
+            $serverLines += "- ``ext-codex``: OpenAI Codex / GPT (``codex_start``, ``codex_send``, ``codex_poll``, ``codex_result``, ``codex_info``) — default ``$($pCodexNorm.model)`` (``$($pCodexNorm.effort)``)"
             $allocLines += "- **``ext-codex`` [$roleTag, weight=$w]**:"
-            $allocLines += "  - Normal/default tier: ``$($codexNorm.model)`` (effort ``$($codexNorm.effort)``)."
-            $allocLines += "  - Hard/sandboxed test loops: ``$($codexHard.model)`` (effort ``$($codexHard.effort)``); asset generation: ``$($codexAsset.model)`` (effort ``$($codexAsset.effort)``)."
+            $allocLines += "  - Normal/default tier: ``$($pCodexNorm.model)`` (effort ``$($pCodexNorm.effort)``)."
+            $allocLines += "  - Hard/sandboxed test loops: ``$($pCodexHard.model)`` (effort ``$($pCodexHard.effort)``); asset generation: ``$($pCodexAsset.model)`` (effort ``$($pCodexAsset.effort)``)."
             $skillSections += @"
 ### ``ext-codex`` ($roleTag)
 - Tools: ``codex_start``, ``codex_send``, ``codex_poll``, ``codex_result``, ``codex_cancel``, ``codex_list``, ``codex_info``.
-- Default tier: ``$($codexNorm.model)`` (``$($codexNorm.effort)``); hard tier: ``$($codexHard.model)`` (``$($codexHard.effort)``); asset tier: ``$($codexAsset.model)`` (``$($codexAsset.effort)``).
+- Default tier: ``$($pCodexNorm.model)`` (``$($pCodexNorm.effort)``); hard tier: ``$($pCodexHard.model)`` (``$($pCodexHard.effort)``); asset tier: ``$($pCodexAsset.model)`` (``$($pCodexAsset.effort)``).
 - Flow: ``codex_start(workspacePath, task, model=..., reasoningEffort=..., wait=true/false)`` -> ``codex_send(threadId, task)``.
 "@
         }
@@ -415,9 +415,9 @@ Write-Host "  Editorial Style : $($cfg.editorial)"
 Write-Host "  MCP Servers     : $($servers.Keys -join ', ')"
 if ($enabled.Count -gt 0) {
     Write-Host "  Primary Harness : ext-$($cfg.primary)"
-    if ($cfg.harnesses.claude) { Write-Host "  Claude Tiers    : normal=$($claudeNorm.model):$($claudeNorm.effort), hard=$($claudeHard.model):$($claudeHard.effort)" }
-    if ($cfg.harnesses.codex)  { Write-Host "  Codex Tiers     : normal=$($codexNorm.model):$($codexNorm.effort), hard=$($codexHard.model):$($codexHard.effort), asset=$($codexAsset.model):$($codexAsset.effort)" }
-    if ($cfg.harnesses.dsh)    { Write-Host "  DSH Tiers       : normal=$($dshNorm.model):$($dshNorm.effort), hard=$($dshHard.model):$($dshHard.effort)" }
+    if ($cfg.harnesses.claude) { Write-Host "  Claude Tiers    : normal=$($pClaudeNorm.model):$($pClaudeNorm.effort), hard=$($pClaudeHard.model):$($pClaudeHard.effort)" }
+    if ($cfg.harnesses.codex)  { Write-Host "  Codex Tiers     : normal=$($pCodexNorm.model):$($pCodexNorm.effort), hard=$($pCodexHard.model):$($pCodexHard.effort), asset=$($pCodexAsset.model):$($pCodexAsset.effort)" }
+    if ($cfg.harnesses.dsh)    { Write-Host "  DSH Tiers       : normal=$($pDshNorm.model):$($pDshNorm.effort), hard=$($pDshHard.model):$($pDshHard.effort)" }
 }
 Write-Host "  Saved Config    : $(Join-Path $TargetDir 'setup.json')"
 Write-Host "Restart or toggle the plugin in Antigravity Customizations to reload." -ForegroundColor Yellow
