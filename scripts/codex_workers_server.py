@@ -6,7 +6,7 @@ Standard library only. Every task runs as `codex exec --json` in the background;
 
 Tools: codex_start, codex_send, codex_poll, codex_result, codex_cancel, codex_list, codex_info
 """
-import glob, json, os, subprocess, sys, threading, time, uuid
+import glob, json, os, shutil, subprocess, sys, threading, time, uuid
 
 SERVER = {"name": "codex-workers", "version": "1.1.0"}
 # User rule (2026-11-15): the GPT worker runs gpt-6-luna at medium effort and is used ONLY for asset
@@ -24,11 +24,24 @@ LOCK = threading.Lock()
 def codex_exe():
     if os.environ.get("CODEX_EXE") and os.path.exists(os.environ["CODEX_EXE"]):
         return os.environ["CODEX_EXE"]
+    found = shutil.which("codex")
+    if found:
+        return found
     la = os.environ.get("LOCALAPPDATA", "")
-    cands = glob.glob(os.path.join(la, "OpenAI", "Codex", "bin", "*", "codex.exe"))
+    cands = []
+    if la:
+        cands += glob.glob(os.path.join(la, "OpenAI", "Codex", "bin", "*", "codex.exe"))
     cands += glob.glob(os.path.expanduser(r"~\.codex\plugins\.plugin-appserver\codex.exe"))
+    cands += glob.glob(os.path.expanduser("~/.codex/plugins/.plugin-appserver/codex"))
+    for mac_cand in (
+        "/Applications/Codex.app/Contents/Resources/codex",
+        "/opt/homebrew/bin/codex",
+        "/usr/local/bin/codex",
+    ):
+        if os.path.exists(mac_cand):
+            cands.append(mac_cand)
     if not cands:
-        raise RuntimeError("codex.exe not found (is the Codex desktop app installed? set CODEX_EXE to override)")
+        raise RuntimeError("codex CLI not found (is Codex installed? set CODEX_EXE to override)")
     return max(cands, key=os.path.getmtime)
 
 

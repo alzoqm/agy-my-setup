@@ -29,13 +29,14 @@ SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".pytest_ca
 def claude_exe():
     if os.environ.get("CLAUDE_EXE") and os.path.exists(os.environ["CLAUDE_EXE"]):
         return os.environ["CLAUDE_EXE"]
-    cand = os.path.expanduser(r"~\.local\bin\claude.exe")
-    if os.path.exists(cand):
-        return cand
+    for rel in (r"~\.local\bin\claude.exe", r"~\.local\bin\claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude"):
+        cand = os.path.expanduser(rel)
+        if os.path.exists(cand):
+            return cand
     found = shutil.which("claude")
     if found:
         return found
-    raise RuntimeError("claude.exe not found (set CLAUDE_EXE to override)")
+    raise RuntimeError("claude CLI not found (set CLAUDE_EXE to override)")
 
 
 def snapshot(root, limit=20000):

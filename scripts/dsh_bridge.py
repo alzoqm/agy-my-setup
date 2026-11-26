@@ -16,15 +16,17 @@ DSH_URL = os.environ.get("DSH_MCP_URL", "http://127.0.0.1:5642/mcp")
 DSH_TOKEN = os.environ.get("DSH_MCP_TOKEN", "")
 DSH_HOST = os.environ.get("DSH_HOST", "127.0.0.1")
 DSH_PORT = int(os.environ.get("DSH_PORT", "5642"))
-DSH_EXE = os.environ.get(
-    "DSH_EXE",
-    os.path.join(
+_DEFAULT_DSH_EXE = (
+    "/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness"
+    if sys.platform == "darwin"
+    else os.path.join(
         os.environ.get("LOCALAPPDATA", os.path.expanduser(r"~\AppData\Local")),
         "Programs",
         "DeepSeek Harness",
         "DeepSeek Harness.exe",
-    ),
+    )
 )
+DSH_EXE = os.environ.get("DSH_EXE", _DEFAULT_DSH_EXE)
 
 SESSION_ID = None
 
