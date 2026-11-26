@@ -3,5 +3,6 @@ __pycache__/
 cache/
 scripts/jobs/
 scripts/claude_jobs/
+setup.json
 .DS_Store
 Thumbs.db
