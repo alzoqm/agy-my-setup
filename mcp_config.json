@@ -1,0 +1,46 @@
+{
+  "mcpServers": {
+    "editorial-media": {
+      "command": "python",
+      "args": [
+        "-X",
+        "utf8",
+        "${PLUGIN_ROOT}/scripts/editorial_media_server.py"
+      ]
+    },
+    "ext-claude": {
+      "command": "python",
+      "args": [
+        "-X",
+        "utf8",
+        "${PLUGIN_ROOT}/scripts/claude_workers_server.py"
+      ]
+    },
+    "ext-codex": {
+      "command": "python",
+      "args": [
+        "-X",
+        "utf8",
+        "${PLUGIN_ROOT}/scripts/codex_workers_server.py"
+      ]
+    },
+    "ext-dsh": {
+      "command": "python",
+      "args": [
+        "-X",
+        "utf8",
+        "${PLUGIN_ROOT}/scripts/dsh_bridge.py"
+      ],
+      "env": {
+        "DSH_MCP_TOKEN": "${DSH_MCP_TOKEN}"
+      },
+      "variables": [
+        {
+          "name": "DSH_MCP_TOKEN",
+          "title": "DeepSeek Harness MCP Token",
+          "description": "DeepSeek Harness Desktop의 MCP Bearer 토큰을 입력하세요 (로컬 서버 127.0.0.1:5642/mcp 인증용)."
+        }
+      ]
+    }
+  }
+}
