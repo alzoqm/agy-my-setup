@@ -15,9 +15,9 @@ Use this skill whenever an explanation benefits from **visual reference images**
 
 2. **Visually Inspect Fetched Images (`read_file`) — Mandatory**:
    Before embedding any image, call `read_file` in parallel on the returned `file_path`s!
-   - Actually **look at** each image to verify it matches the topic, has no distracting watermarks/corruption, and shows clear visual detail.
-   - Select only the best `image_id`(s) (or re-query if none fit).
-   - **Ground your prose in the image**: Reference specific visual elements you observed (e.g., layout, colors, labels, clothing/design details, diagram flow) in the surrounding Markdown section.
+   - Actually **look at** each image to verify it directly matches the specific point being explained, has no distracting watermarks/corruption, and shows clear visual detail.
+   - Select only the `image_id`(s) that genuinely add visual clarity. If none fit well after 1–2 targeted queries, **do not force a filler image**—omit `image_ids` (use text-only cards like spec/quadrant/timeline if useful) or switch to a `generative_ui` diagram instead.
+   - **Ground your prose in the image**: Explicitly point to and explain specific visual elements you observed (e.g., layout, colors, labels, clothing/design details, diagram flow) in the surrounding Markdown section so the image and text work together as one explanation.
 
 3. **Build & Interleave Multiple Editorial Widgets**:
    Call `editorial-media` -> `render_editorial_widget(...)` with:
